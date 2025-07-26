@@ -53,13 +53,15 @@ summary(stock_data$Date)
 # Define companies
 companies <- c("JFC", "URC", "CNPF", "GSMI", "MONDE")
 
-# Define key tariff dates (adjust based on your research)
-tariff_announcement <- as.Date("2025-01-20")  # Trump inauguration
-tariff_implementation <- as.Date("2025-02-01")  # Adjust actual date
+# Define key tariff dates (CORRECTED based on fact-check)
+tariff_inauguration <- as.Date("2025-01-20")  # Trump inauguration
+tariff_announcement <- as.Date("2025-04-02")  # 17% tariff announcement ("Liberation Day")
+tariff_escalation <- as.Date("2025-07-09")    # 20% tariff letter posted
+tariff_negotiation <- as.Date("2025-07-22")   # Reduced to 19% after Marcos-Trump meeting
 
-# Create before/after periods
-before_tariff <- stock_data[stock_data$Date < tariff_announcement, ]
-after_tariff <- stock_data[stock_data$Date >= tariff_announcement, ]
+# Create before/after periods (using inauguration as the main dividing line)
+before_tariff <- stock_data[stock_data$Date < tariff_inauguration, ]
+after_tariff <- stock_data[stock_data$Date >= tariff_inauguration, ]
 
 cat("Before period:", nrow(before_tariff), "days\n")
 cat("After period:", nrow(after_tariff), "days\n")
@@ -75,8 +77,8 @@ for(company in companies) {
 }
 
 # Recreate before/after datasets with returns included
-before_tariff <- stock_data[stock_data$Date < tariff_announcement, ]
-after_tariff <- stock_data[stock_data$Date >= tariff_announcement, ]
+before_tariff <- stock_data[stock_data$Date < tariff_inauguration, ]
+after_tariff <- stock_data[stock_data$Date >= tariff_inauguration, ]
 
 # Calculate volatility (standard deviation) before and after
 volatility_before <- sapply(companies, function(x) {
@@ -113,8 +115,8 @@ for(company in companies) {
 }
 
 # Recreate datasets with MA columns included
-before_tariff <- stock_data[stock_data$Date < tariff_announcement, ]
-after_tariff <- stock_data[stock_data$Date >= tariff_announcement, ]
+before_tariff <- stock_data[stock_data$Date < tariff_inauguration, ]
+after_tariff <- stock_data[stock_data$Date >= tariff_inauguration, ]
 
 # Calculate moving average changes
 ma_changes <- data.frame(
@@ -172,10 +174,20 @@ stock_long <- stock_data %>%
 
 ggplot(stock_long, aes(x = Date, y = Price, color = Company)) +
   geom_line(size = 1) +
-  geom_vline(xintercept = tariff_announcement, linetype = "dashed", color = "red", size = 1) +
-  annotate("text", x = tariff_announcement, y = max(stock_long$Price, na.rm = TRUE), 
-           label = "Tariff Announcement", angle = 90, vjust = 1.2) +
+  geom_vline(xintercept = tariff_inauguration, linetype = "dashed", color = "red", size = 1) +
+  geom_vline(xintercept = tariff_announcement, linetype = "dashed", color = "orange", size = 0.8) +
+  geom_vline(xintercept = tariff_escalation, linetype = "dashed", color = "darkred", size = 0.8) +
+  geom_vline(xintercept = tariff_negotiation, linetype = "dashed", color = "green", size = 0.8) +
+  annotate("text", x = tariff_inauguration, y = max(stock_long$Price, na.rm = TRUE), 
+           label = "Trump Inauguration", angle = 90, vjust = 1.2) +
+  annotate("text", x = tariff_announcement, y = max(stock_long$Price, na.rm = TRUE) * 0.95, 
+           label = "17% Tariff", angle = 90, vjust = 1.2) +
+  annotate("text", x = tariff_escalation, y = max(stock_long$Price, na.rm = TRUE) * 0.9, 
+           label = "20% Tariff", angle = 90, vjust = 1.2) +
+  annotate("text", x = tariff_negotiation, y = max(stock_long$Price, na.rm = TRUE) * 0.85, 
+           label = "19% Deal", angle = 90, vjust = 1.2) +
   labs(title = "Philippine Food Company Stock Prices - Tariff Impact",
+       subtitle = "Key events: Inauguration (Jan 20), 17% announcement (Apr 2), 20% escalation (Jul 9), 19% deal (Jul 22)",
        x = "Date", y = "Stock Price (PHP)") +
   theme_minimal() +
   theme(legend.position = "bottom")
@@ -194,8 +206,8 @@ sentiment_data <- tryCatch({
 })
 
 if (!is.null(sentiment_data)) {
-  # Define key tariff dates for event analysis
-  key_dates <- as.Date(c("2025-04-03", "2025-07-10"))  # 17% and 20% tariff announcements
+  # Define key tariff dates for event analysis (CORRECTED)
+  key_dates <- as.Date(c("2025-04-02", "2025-07-09"))  # 17% and 20% tariff announcements
   
   # Aggregate daily sentiment scores
   daily_sentiment <- sentiment_data %>%
@@ -329,7 +341,7 @@ if (!is.null(sentiment_data)) {
       geom_vline(xintercept = key_dates, linetype = "dashed", color = "red", alpha = 0.7) +
       scale_color_manual(values = c("Stock Returns" = "blue", "Sentiment (×5)" = "green")) +
       labs(title = "Daily Average Stock Returns vs Sentiment",
-           subtitle = "Red lines mark tariff announcement dates",
+           subtitle = "Red lines mark tariff announcement dates (Apr 2, Jul 9)",
            x = "Date", y = "Value", color = "Metric") +
       theme_minimal()
     
@@ -352,7 +364,7 @@ tableau_data <- stock_data %>%
   pivot_wider(names_from = Type, values_from = Value)
 
 # Add tariff period indicator
-tableau_data$Tariff_Period <- ifelse(tableau_data$Date >= tariff_announcement, "After", "Before")
+tableau_data$Tariff_Period <- ifelse(tableau_data$Date >= tariff_inauguration, "After", "Before")
 
 # Export for Tableau
 write.csv(tableau_data, "Philippine_Food_Stocks_Tableau.csv", row.names = FALSE)
