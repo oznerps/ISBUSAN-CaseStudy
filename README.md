@@ -11,6 +11,35 @@ This Business Intelligence case study analyzes how Trump administration tariffs 
 
 ## Key Findings
 
+### **Stock Market Impact**
+- **Increased Volatility**: All 5 companies showed heightened volatility after Trump's inauguration (Jan 20, 2025)
+- **Price Decline**: Average stock prices dropped significantly following tariff escalations
+- **JFC** (Jollibee): Most resilient with smaller percentage decline
+- **MONDE** (Monde Nissin): Experienced highest volatility increase
+- **Statistical Significance**: T-tests confirmed significant changes in daily returns for most companies
+
+### **Moving Average Analysis**
+- **7-day MA**: Sharp downward trend after April 2 (17% tariff announcement)
+- **30-day MA**: Sustained decline throughout the tariff period
+- **Recovery Patterns**: Minor stabilization after July 22 Marcos-Trump meeting (19% final rate)
+
+### **Public Sentiment Analysis**
+- **Overall Sentiment**: Predominantly negative (-0.19 average sentiment score)
+- **Reddit Activity**: 34 posts/comments analyzed across multiple subreddits
+- **Peak Negativity**: July 2025 during 20% tariff announcement period
+- **Sentiment Distribution**: 41% Negative, 35% Neutral, 24% Positive
+- **Correlation**: Weak but noticeable correlation between negative sentiment and stock declines
+
+### **Timeline of Key Events**
+1. **Jan 20, 2025**: Trump inauguration - Initial market uncertainty
+2. **Apr 2, 2025**: 17% tariff announcement - First major stock decline
+3. **Jul 9, 2025**: 20% tariff escalation - Peak negative sentiment
+4. **Jul 22, 2025**: Negotiated reduction to 19% - Minor recovery
+
+### **Investment Implications**
+- **Sector Vulnerability**: Philippine food exporters highly sensitive to US trade policy
+- **Diversification Need**: Companies with heavy US export dependency face ongoing risks
+- **Policy Hedge**: Diplomatic engagement showed ability to mitigate worst-case scenarios
 
 ## Technologies Used
 - **R Studio**: Stock price analysis, volatility calculations
