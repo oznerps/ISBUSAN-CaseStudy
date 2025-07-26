@@ -13,7 +13,7 @@ library(writexl)
 
 # Step 2
 # Set working directory
-setwd("C:/Users/renzo/Desktop/ISBUSAN")
+setwd("C:/Users/renzo/Documents/GitHub/ISBUSAN-CaseStudy")
 
 # Load raw data
 raw_data <- read_excel("ISBUSANFoodStockPrices.xlsx", sheet = "JFC", skip = 3)

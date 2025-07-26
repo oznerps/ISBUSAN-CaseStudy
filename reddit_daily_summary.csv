@@ -1,0 +1,35 @@
+date,subreddit,avg_sentiment,sentiment_std,count,sentiment_breakdown
+2024-12-05,collapse,-0.4398,,1,{'Negative': 1}
+2025-02-14,Aliexpress,-0.4232,,1,{'Negative': 1}
+2025-03-27,Infographics,0.0,,1,{'Neutral': 1}
+2025-04-03,Infographics,0.0312,,1,{'Neutral': 1}
+2025-04-03,Philippines,0.5238,,1,{'Positive': 1}
+2025-04-06,MapPorn,0.0682,,1,{'Neutral': 1}
+2025-05-17,StockMarket,-0.583,,1,{'Negative': 1}
+2025-05-29,StockMarket,-0.3877,,1,{'Negative': 1}
+2025-06-21,clevercomebacks,0.0,,1,{'Neutral': 1}
+2025-06-21,inflation,0.0,,1,{'Neutral': 1}
+2025-06-28,LeopardsAteMyFace,-0.2772,,1,{'Negative': 1}
+2025-07-07,news,-0.1132,,1,{'Negative': 1}
+2025-07-10,NoFilterNews,0.0,,1,{'Neutral': 1}
+2025-07-10,PHStrategy,0.2324,,1,{'Positive': 1}
+2025-07-10,Philippines,0.199,0.3714,2,"{'Neutral': 1, 'Positive': 1}"
+2025-07-10,StockMarket,0.4224,,1,{'Positive': 1}
+2025-07-10,newsPH,-0.1,,1,{'Negative': 1}
+2025-07-10,worldnews,0.0,,1,{'Neutral': 1}
+2025-07-11,MurderedByWords,-0.0513,,1,{'Neutral': 1}
+2025-07-12,worldnews,0.0,,1,{'Neutral': 1}
+2025-07-18,goodnews,-0.25,,1,{'Negative': 1}
+2025-07-23,DegenBets,-0.033,,1,{'Neutral': 1}
+2025-07-23,GeopoliticsInsight,0.4179,,1,{'Positive': 1}
+2025-07-23,Philippines,0.0,0.0,2,{'Neutral': 2}
+2025-07-23,StockMarket,0.2202,,1,{'Positive': 1}
+2025-07-23,WallStreetbetsELITE,0.0,,1,{'Neutral': 1}
+2025-07-23,XGramatikInsights,0.0315,,1,{'Neutral': 1}
+2025-07-23,facepalm,-0.8872,,1,{'Negative': 1}
+2025-07-23,neoliberal,0.247,,1,{'Positive': 1}
+2025-07-23,newsPH,0.3852,,1,{'Positive': 1}
+2025-07-23,politics,0.247,,1,{'Positive': 1}
+2025-07-23,u_Worthy_News,0.5463,,1,{'Positive': 1}
+2025-07-23,worldnews,-0.0954,0.135,2,"{'Negative': 1, 'Neutral': 1}"
+2025-07-24,FluentInFinance,0.541,,1,{'Positive': 1}
