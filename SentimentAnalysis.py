@@ -58,7 +58,8 @@ class TariffSentimentAnalyzer:
             'trade war', 'export', 'import', 'duty', 'reciprocal'
         ]
         self.philippines_keywords = [
-            'philippines', 'philippine', 'filipino', 'manila'
+            'philippines', 'philippine', 'filipino', 'manila',
+            'PSE', 'PSEi', 'PSEI', 'pinoy', 'pinas'
         ]
         # All keywords combined for filtering
         self.keywords = (self.food_companies + self.stock_keywords + 
@@ -127,9 +128,20 @@ class RedditScraper:
         text_lower = text.lower()
         score = 0
         
-        # High value: specific food company mentions (3 points each)
+        # HIGHEST value: Philippine food company mentions (5 points each)
+        ph_food_companies = ['jfc', 'urc', 'cnpf', 'gsmi', 'monde']
+        for ticker in ph_food_companies:
+            if ticker.lower() in text_lower:
+                score += 5
+        
+        # High value: specific food company names (3 points each)
         for company in self.analyzer.food_companies:
             if company.lower() in text_lower:
+                score += 3
+        
+        # High value: Philippines mentions (3 points each) - weighted more
+        for ph_term in self.analyzer.philippines_keywords:
+            if ph_term.lower() in text_lower:
                 score += 3
         
         # Medium value: stock/financial terms (2 points each)
@@ -142,10 +154,11 @@ class RedditScraper:
             if tariff_term.lower() in text_lower:
                 score += 2
         
-        # Base value: Philippines mentions (1 point each)
-        for ph_term in self.analyzer.philippines_keywords:
-            if ph_term.lower() in text_lower:
-                score += 1
+        # Bonus points for Philippine-specific financial terms
+        ph_specific = ['psei', 'pse', 'philippine stock', 'manila stock']
+        for term in ph_specific:
+            if term in text_lower:
+                score += 4
         
         return score
         
@@ -175,9 +188,23 @@ class RedditScraper:
         """Search for related Reddit threads using Reddit search"""
         all_posts = []
         
+        # Priority Philippine subreddits
+        ph_subreddits = ['Philippines', 'phinvest', 'PHStocks', 'PHStrategy', 
+                        'PHFinance', 'PHBusiness', 'pinoyinvestors']
+        
         for term in search_terms:
             try:
-                # Search Reddit via JSON API
+                # First try searching in Philippine subreddits
+                for subreddit in ph_subreddits:
+                    subreddit_url = f"https://www.reddit.com/r/{subreddit}/search.json?q={term}&restrict_sr=1&sort=relevance&limit=5"
+                    response = requests.get(subreddit_url, headers=self.headers)
+                    
+                    if response.status_code == 200:
+                        data = response.json()
+                        posts = self._parse_search_results(data, term)
+                        all_posts.extend(posts)
+                
+                # Then do a general search with the term
                 search_url = f"https://www.reddit.com/search.json?q={term}&sort=relevance&limit=10"
                 response = requests.get(search_url, headers=self.headers)
                 
@@ -217,14 +244,43 @@ class RedditScraper:
                 has_tariff = any(tariff.lower() in full_text 
                                for tariff in self.analyzer.tariff_keywords)
                 
-                # Only include if it mentions Philippines AND tariffs, 
-                # with bonus relevance for food companies
-                if (has_philippines and has_tariff) or (has_food_company and has_tariff):
+                # Expanded list of noise subreddits to exclude
+                noise_subreddits = ['civ', 'gaming', 'memes', 'funny', 'pics', 
+                                  'worldnews', 'news', 'politics', 'europe',
+                                  'china', 'india', 'canada', 'australia',
+                                  'armenia', 'newzealand', 'popculture', 
+                                  'noshitsherlock', 'boycottunitedstates',
+                                  'unitedkingdom', 'france', 'germany', 'japan']
+                current_subreddit = post_data.get('subreddit', '').lower()
+                
+                if current_subreddit in noise_subreddits:
+                    continue
+                
+                # STRICT FILTER: Must have Philippines context AND tariffs
+                # Food company alone is not enough - must be Philippine-specific
+                if has_philippines and has_tariff:
                     # Calculate relevance score
                     relevance_score = self.calculate_relevance_score(full_text)
                     
-                    # Only include posts with minimum relevance score of 3
-                    if relevance_score >= 3:
+                    # Require higher minimum score for non-Philippine subreddits
+                    min_score = 3
+                    ph_subreddits = ['philippines', 'phinvest', 'phstocks', 'phstrategy', 
+                                   'phfinance', 'phbusiness', 'pinoyinvestors', 
+                                   'stocks_philippines']
+                    
+                    # Allowed non-PH subreddits that are finance/stock related
+                    allowed_finance_subreddits = ['stocks', 'investing', 'stockmarket', 
+                                                 'wallstreetbets', 'securityanalysis',
+                                                 'valueinvesting', 'economy', 'economics']
+                    
+                    if current_subreddit in ph_subreddits:
+                        min_score = 3  # Lower bar for PH subreddits
+                    elif current_subreddit in allowed_finance_subreddits:
+                        min_score = 10  # Very high bar for general finance subreddits
+                    else:
+                        min_score = 15  # Extremely high bar for all other subreddits
+                    
+                    if relevance_score >= min_score:
                         posts.append({
                             'type': 'search_result',
                             'id': post_data.get('id', ''),
@@ -402,18 +458,18 @@ def main():
     
     # 2. Search for related discussions
     print("\\n2. Searching for related Reddit discussions...")
-    # More specific search terms focused on food companies and stock impacts
+    # Strictly Philippine-focused search terms
     search_terms = [
-        "philippines tariff jollibee stock",
-        "JFC stock trump tariff",
-        "URC universal robina tariff impact",
-        "CNPF century pacific tariff stock",
-        "philippine food exports tariff stock market",
-        "PSE food sector trump tariff",
-        "monde nissin MONDE tariff impact",
-        "ginebra GSMI tariff stock price",
-        "philippine food companies 20% tariff",
-        "jollibee JFC investor tariff concerns"
+        "site:reddit.com/r/Philippines trump tariff",
+        "site:reddit.com/r/phinvest JFC URC CNPF tariff",
+        "site:reddit.com/r/PHStocks food companies tariff",
+        "Philippines JFC jollibee trump 20% tariff",
+        "Philippines URC universal robina tariff stock PSE",
+        "Philippines CNPF century pacific food tariff impact",
+        "Philippines MONDE nissin tariff stock price",
+        "Philippines GSMI ginebra san miguel tariff",
+        "PSEi food sector philippines trump tariff",
+        "Philippine stock exchange food companies tariff"
     ]
     
     related_posts = reddit_scraper.search_related_threads(search_terms)
