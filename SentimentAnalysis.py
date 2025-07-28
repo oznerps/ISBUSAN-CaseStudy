@@ -43,13 +43,26 @@ except Exception:
 class TariffSentimentAnalyzer:
     def __init__(self):
         self.vader = SentimentIntensityAnalyzer()
-        self.keywords = [
-            'tariff', 'philippines', 'food', 'export', 'trump', 'trade', 
-            'JFC', 'URC', 'CNPF', 'GSMI', 'MONDE', 'jollibee', 'universal robina',
-            'century pacific', 'ginebra', 'monde nissin', 'philippine food',
-            'filipino companies', 'stock market', 'pse', 'philippine economy',
-            'manila', 'duterte', 'marcos', 'business', 'investment'
+        # More focused keywords on specific companies and stock impacts
+        self.food_companies = [
+            'JFC', 'URC', 'CNPF', 'GSMI', 'MONDE',
+            'jollibee', 'universal robina', 'century pacific', 
+            'ginebra san miguel', 'monde nissin'
         ]
+        self.stock_keywords = [
+            'stock', 'shares', 'PSE', 'PSEI', 'price', 'trading',
+            'market cap', 'investor', 'earnings', 'revenue'
+        ]
+        self.tariff_keywords = [
+            'tariff', 'trump tariff', '20% tariff', '17% tariff',
+            'trade war', 'export', 'import', 'duty', 'reciprocal'
+        ]
+        self.philippines_keywords = [
+            'philippines', 'philippine', 'filipino', 'manila'
+        ]
+        # All keywords combined for filtering
+        self.keywords = (self.food_companies + self.stock_keywords + 
+                        self.tariff_keywords + self.philippines_keywords)
         
     def analyze_sentiment(self, text):
         """Analyze sentiment using VADER and TextBlob"""
@@ -108,6 +121,33 @@ class RedditScraper:
     def __init__(self):
         self.analyzer = TariffSentimentAnalyzer()
         self.headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+    
+    def calculate_relevance_score(self, text):
+        """Calculate relevance score for a post based on keyword matches"""
+        text_lower = text.lower()
+        score = 0
+        
+        # High value: specific food company mentions (3 points each)
+        for company in self.analyzer.food_companies:
+            if company.lower() in text_lower:
+                score += 3
+        
+        # Medium value: stock/financial terms (2 points each)
+        for stock_term in self.analyzer.stock_keywords:
+            if stock_term.lower() in text_lower:
+                score += 2
+        
+        # Medium value: specific tariff mentions (2 points each)
+        for tariff_term in self.analyzer.tariff_keywords:
+            if tariff_term.lower() in text_lower:
+                score += 2
+        
+        # Base value: Philippines mentions (1 point each)
+        for ph_term in self.analyzer.philippines_keywords:
+            if ph_term.lower() in text_lower:
+                score += 1
+        
+        return score
         
     def scrape_specific_thread(self, thread_url):
         """Scrape specific Reddit thread without authentication"""
@@ -160,23 +200,45 @@ class RedditScraper:
             for post in search_data['data']['children']:
                 post_data = post['data']
                 
-                # Filter for relevant posts
-                if any(keyword.lower() in post_data.get('title', '').lower() 
-                       for keyword in self.analyzer.keywords):
+                # Enhanced relevance filtering
+                title_lower = post_data.get('title', '').lower()
+                text_lower = post_data.get('selftext', '').lower()
+                full_text = title_lower + ' ' + text_lower
+                
+                # Check for food company mentions
+                has_food_company = any(company.lower() in full_text 
+                                     for company in self.analyzer.food_companies)
+                
+                # Check for Philippines context
+                has_philippines = any(ph.lower() in full_text 
+                                    for ph in self.analyzer.philippines_keywords)
+                
+                # Check for tariff context
+                has_tariff = any(tariff.lower() in full_text 
+                               for tariff in self.analyzer.tariff_keywords)
+                
+                # Only include if it mentions Philippines AND tariffs, 
+                # with bonus relevance for food companies
+                if (has_philippines and has_tariff) or (has_food_company and has_tariff):
+                    # Calculate relevance score
+                    relevance_score = self.calculate_relevance_score(full_text)
                     
-                    posts.append({
-                        'type': 'search_result',
-                        'id': post_data.get('id', ''),
-                        'title': post_data.get('title', ''),
-                        'text': post_data.get('selftext', ''),
-                        'score': post_data.get('score', 0),
-                        'num_comments': post_data.get('num_comments', 0),
-                        'created_utc': datetime.fromtimestamp(post_data.get('created_utc', 0)),
-                        'author': post_data.get('author', DELETED_TEXT),
-                        'subreddit': post_data.get('subreddit', ''),
-                        'url': f"https://reddit.com{post_data.get('permalink', '')}",
-                        'search_term': search_term
-                    })
+                    # Only include posts with minimum relevance score of 3
+                    if relevance_score >= 3:
+                        posts.append({
+                            'type': 'search_result',
+                            'id': post_data.get('id', ''),
+                            'title': post_data.get('title', ''),
+                            'text': post_data.get('selftext', ''),
+                            'score': post_data.get('score', 0),
+                            'num_comments': post_data.get('num_comments', 0),
+                            'created_utc': datetime.fromtimestamp(post_data.get('created_utc', 0)),
+                            'author': post_data.get('author', DELETED_TEXT),
+                            'subreddit': post_data.get('subreddit', ''),
+                            'url': f"https://reddit.com{post_data.get('permalink', '')}",
+                            'search_term': search_term,
+                            'relevance_score': relevance_score
+                        })
         except Exception as e:
             print(f"Error parsing search results: {e}")
         
@@ -305,6 +367,7 @@ class RedditScraper:
                     'author': post.get('author', ''),
                     'level': post.get('level', 0),
                     'url': post.get('url', ''),
+                    'relevance_score': post.get('relevance_score', 0),
                     **sentiment
                 }
                 results.append(result)
@@ -313,6 +376,11 @@ class RedditScraper:
 
 def main():
     """Main execution function"""
+    # Handle Unicode output properly
+    import sys
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    
     print("="*60)
     print("PHILIPPINE TARIFF REDDIT SENTIMENT ANALYSIS")
     print("="*60)
@@ -334,11 +402,18 @@ def main():
     
     # 2. Search for related discussions
     print("\\n2. Searching for related Reddit discussions...")
+    # More specific search terms focused on food companies and stock impacts
     search_terms = [
-        "trump tariff philippines",
-        "philippines trade trump", 
-        "philippine economy tariff",
-        "jollibee trump tariff"
+        "philippines tariff jollibee stock",
+        "JFC stock trump tariff",
+        "URC universal robina tariff impact",
+        "CNPF century pacific tariff stock",
+        "philippine food exports tariff stock market",
+        "PSE food sector trump tariff",
+        "monde nissin MONDE tariff impact",
+        "ginebra GSMI tariff stock price",
+        "philippine food companies 20% tariff",
+        "jollibee JFC investor tariff concerns"
     ]
     
     related_posts = reddit_scraper.search_related_threads(search_terms)
@@ -358,9 +433,9 @@ def main():
         # Remove duplicates by URL
         sentiment_df = sentiment_df.drop_duplicates(subset=['url'], keep='first')
         
-        # Sort by date
+        # Sort by relevance score first, then by date
         sentiment_df['date'] = pd.to_datetime(sentiment_df['date'])
-        sentiment_df = sentiment_df.sort_values('date')
+        sentiment_df = sentiment_df.sort_values(['relevance_score', 'date'], ascending=[False, True])
         
         # Export detailed results
         sentiment_df.to_csv('reddit_sentiment_detailed.csv', index=False)
@@ -406,6 +481,12 @@ def main():
         top_upvoted = sentiment_df.nlargest(3, 'score')[['subreddit', 'title', 'score', 'combined_score']]
         for _, item in top_upvoted.iterrows():
             print(f"  r/{item['subreddit']}: {item['title'][:50]}... ({item['score']} upvotes, sentiment: {item['combined_score']:.3f})")
+        
+        # Most relevant posts (new section)
+        print("\\nMost relevant posts (by relevance score):")
+        top_relevant = sentiment_df.nlargest(5, 'relevance_score')[['subreddit', 'title', 'relevance_score', 'combined_score']]
+        for _, item in top_relevant.iterrows():
+            print(f"  r/{item['subreddit']}: {item['title'][:50]}... (relevance: {item['relevance_score']}, sentiment: {item['combined_score']:.3f})")
         
         # Most positive/negative sentiment
         print("\\nMost positive sentiment:")
